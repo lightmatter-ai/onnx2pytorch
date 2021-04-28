@@ -38,7 +38,7 @@ def test_onnx2pytorch2onnx(onnx_model, onnx_model_outputs, onnx_inputs):
     torch.onnx.export(
         model,
         tuple(torch_inputs),
-        bitstream,
+        "/home/calvin/sandbox/onnx2pytorch/backupfixtures/224_224_160_dyanmic_bs_onnx2pytorch2onnx.onnx",
         export_params=True,
         opset_version=11,
         do_constant_folding=True,

@@ -10,7 +10,7 @@ from onnx2pytorch.utils import get_inputs_sample
 
 RANDOM_SEED = 100
 FIXTURES_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "fixtures"
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "backupfixtures"
 )
 
 

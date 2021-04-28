@@ -100,8 +100,8 @@ def convert_instance_norm_layer(node, params):
     kwargs["num_features"] = params[0].dims[0]
     # initialize layer and load weights
     layer = layer(**kwargs)
-    key = ["weight", "bias"]
-    for key, value in zip(key, params):
+    keys = ["weight", "bias"]
+    for key, value in zip(keys, params):
         getattr(layer, key).data = torch.from_numpy(numpy_helper.to_array(value))
 
     return layer
@@ -140,5 +140,26 @@ def convert_linear_layer(node, params):
     layer.weight.data *= dc.get("weight_multiplier")
     if layer.bias is not None:
         layer.bias.data *= dc.get("bias_multiplier")
+
+    return layer
+
+def convert_lstm_layer(node, params):
+    """Convert LSTM layer from onnx node and params."""
+    dc = dict(
+        activation_alpha=None,
+        activation_beta=None,
+        activations=None,
+        clip=None,
+        direction="forward",
+        hidden_size=None,
+        input_forget=0,
+        layout=0,
+    )
+    dc.update(extract_attributes(node))
+    kwargs = {}
+    kwargs["hidden_size"] = dc["hidden_size"]
+    kwargs["bidirectional"] = dc["direction"] == "bidirectional"
+    layer = nn.LSTM(**kwargs)
+    getattr(layer, "weight_ih_l").data = torch.from_numpy(numpy_helper.to_array())
 
     return layer
