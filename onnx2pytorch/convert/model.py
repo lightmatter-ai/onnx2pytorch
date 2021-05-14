@@ -1,6 +1,7 @@
 from functools import partial
 import warnings
 
+import numpy as np
 import onnx
 import torch
 from onnx import numpy_helper
@@ -21,9 +22,7 @@ class InitParameters(dict):
     """Use for parameters that are hidden."""
 
     def __getitem__(self, item):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", TracerWarning)
-            return torch.from_numpy(numpy_helper.to_array(super().__getitem__(item)))
+        return super().__getitem__(item)
 
     def get(self, item, default):
         if item in self:
@@ -60,12 +59,16 @@ class ConvertModel(nn.Module):
         self.experimental = experimental
         self.debug = debug
         self.mapping = {}
+        self.device = None
         for op_id, op_name, op in convert_operations(onnx_model, batch_dim):
             setattr(self, op_name, op)
             self.mapping[op_id] = op_name
 
         self.init_parameters = InitParameters(
-            {tensor.name: tensor for tensor in self.onnx_model.graph.initializer}
+            {
+                tensor.name: torch.from_numpy(np.copy(numpy_helper.to_array(tensor)))
+                for tensor in self.onnx_model.graph.initializer
+            }
         )
 
         self.input_names = get_inputs_names(onnx_model)
@@ -115,7 +118,6 @@ class ConvertModel(nn.Module):
                     activations[in_op_id] if in_op_id in activations
                     # if in_op_id not in activations neither in parameters then
                     # it must be the initial input
-                    # TODO loading parameters in forward func might be very slow!
                     else self.init_parameters.get(in_op_id, input[0])
                     for in_op_id in node.input
                 ]
@@ -147,3 +149,10 @@ class ConvertModel(nn.Module):
         if len(outputs) == 1:
             outputs = outputs[0]
         return outputs
+
+    def to(self, device):
+        super(ConvertModel, self).to(device=device)
+        self.device = device
+        for op_id in self.init_parameters:
+            if self.init_parameters[op_id].device != device:
+                self.init_parameters[op_id] = self.init_parameters[op_id].to(device)
