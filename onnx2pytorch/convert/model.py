@@ -175,3 +175,10 @@ class ConvertModel(nn.Module):
             if self.init_parameters[op_id].device != device:
                 self.init_parameters[op_id] = self.init_parameters[op_id].to(device)
         return self
+
+    def cuda(self, device=None):
+        super(ConvertModel, self).cuda(device=device)
+        if device is None:
+            return self.to("cuda:0")
+        else:
+            return self.to("cuda:{}".format(device))
